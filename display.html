@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>取餐叫號系統 - 顯示螢幕</title>
+    <style>
+        :root {
+            --bg-color: #FBF9F5;
+            --card-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+            --ready-bg: #E8F5E9;        
+            --ready-border: #66BB6A;    
+            --ready-text: #1B5E20;      
+            --prep-bg: #FFF8E1;         
+            --prep-border: #FFA726;     
+            --prep-text: #E65100;       
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: #2C3E50;
+            margin: 0;
+            padding: 15px 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+            gap: 15px;
+            overflow: hidden;
+        }
+
+        /* 頂部店名字幕區塊 */
+        #storeTitleHeader {
+            text-align: center;
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #4A3B32;
+            letter-spacing: 3px;
+            display: none; /* 預設隱藏，有資料才顯示 */
+            padding: 2px 0;
+        }
+
+        /* 中間叫號主區域 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            gap: 20px;
+            min-height: 0;
+        }
+
+        .column {
+            flex: 1;
+            background-color: #FFFFFF;
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: var(--card-shadow);
+            border: 1px solid #EAE6DF;
+            min-height: 0;
+        }
+
+        .column-header {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #F0ECE4;
+            margin-bottom: 10px;
+            padding-left: 5px;
+        }
+
+        .main-title {
+            font-size: 4.2rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            line-height: 0.95;
+        }
+
+        .sub-title {
+            font-size: 2.4rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            margin-top: -2px;
+            align-self: flex-end;
+            margin-right: 15px;
+            text-transform: uppercase;
+        }
+
+        .ready .main-title { color: #4CAF50; }
+        .ready .sub-title { color: #81C784; }
+
+        .preparing .main-title { color: #FFA726; }
+        .preparing .sub-title { color: #FFB74D; }
+        
+        .total-time-banner {
+            font-size: 1.3rem;
+            color: #D35400;
+            margin-bottom: 10px;
+            font-weight: 600;
+            background: #FFF3CD;
+            border: 1px solid #FFEEBA;
+            padding: 8px 16px;
+            border-radius: 10px;
+            width: 85%;
+            text-align: center;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 10px rgba(211, 84, 0, 0.05);
+            flex-shrink: 0;
+        }
+
+        .number-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            width: 100%;
+            overflow-y: auto;
+            align-content: flex-start;
+            padding: 5px;
+        }
+
+        .number-card {
+            padding: 12px 22px;
+            border-radius: 14px;
+            font-size: 3rem;
+            font-weight: 700;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 110px;
+            border-width: 2px;
+            border-style: solid;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            letter-spacing: 1px;
+        }
+
+        .ready-card {
+            background-color: var(--ready-bg);
+            border-color: var(--ready-border);
+            color: var(--ready-text);
+        }
+
+        .ready-subtext {
+            font-size: 1rem;
+            color: #388E3C;
+            margin-top: 4px;
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+
+        .prep-card {
+            background-color: var(--prep-bg);
+            border-color: var(--prep-border);
+            color: var(--prep-text);
+        }
+
+        /* 底部跑馬燈宣告區塊 */
+        #marqueeFooter {
+            background-color: #FFF3CD;
+            border: 1px solid #FFEEBA;
+            border-radius: 10px;
+            padding: 10px 15px;
+            overflow: hidden;
+            white-space: nowrap;
+            display: none; /* 預設隱藏 */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+            flex-shrink: 0;
+        }
+
+        .marquee-text {
+            display: inline-block;
+            padding-left: 100%;
+            animation: marquee 20s linear infinite;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #856404;
+        }
+
+        @keyframes marquee {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-100%, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 頂部店名 -->
+    <div id="storeTitleHeader"></div>
+
+    <!-- 中間叫號主區域 -->
+    <div class="main-content">
+        <div class="column ready">
+            <div class="column-header">
+                <div class="main-title">請取餐</div>
+                <div class="sub-title">Pick up</div>
+            </div>
+            <div id="readyList" class="number-list"></div>
+        </div>
+
+        <div class="column preparing">
+            <div class="column-header">
+                <div class="main-title">準備中</div>
+                <div class="sub-title">Preparing</div>
+            </div>
+            <div class="total-time-banner">目前等待約 <span id="totalMinutes" style="font-size: 1.5rem; font-weight: 800;">0</span> 分鐘</div>
+            <div id="preparingList" class="number-list"></div>
+        </div>
+    </div>
+
+    <!-- 底部跑馬燈 -->
+    <div id="marqueeFooter">
+        <div class="marquee-text" id="marqueeContent"></div>
+    </div>
+
+    <script>
+        function updateDisplay() {
+            const data = JSON.parse(localStorage.getItem('queueData')) || { ready: [], preparing: [], storeName: '', marquee: '' };
+            
+            // 1. 處理頂部店名顯示與隱藏
+            const storeHeader = document.getElementById('storeTitleHeader');
+            if (data.storeName && data.storeName.trim() !== '') {
+                storeHeader.innerText = data.storeName;
+                storeHeader.style.display = 'block';
+            } else {
+                storeHeader.style.display = 'none';
+            }
+
+            // 2. 處理底部跑馬燈顯示與隱藏
+            const marqueeFooter = document.getElementById('marqueeFooter');
+            const marqueeContent = document.getElementById('marqueeContent');
+            if (data.marquee && data.marquee.trim() !== '') {
+                marqueeContent.innerText = data.marquee;
+                marqueeFooter.style.display = 'block';
+            } else {
+                marqueeFooter.style.display = 'none';
+            }
+
+            // 3. 渲染請取餐
+            const readyContainer = document.getElementById('readyList');
+            readyContainer.innerHTML = '';
+            data.ready.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'number-card ready-card';
+                card.innerHTML = `${item.number}<span class="ready-subtext">請立刻取餐</span>`;
+                readyContainer.appendChild(card);
+            });
+
+            // 4. 計算準備中總時間加總
+            let totalTimeSum = 0;
+            data.preparing.forEach(item => {
+                totalTimeSum += Number(item.time) || 0;
+            });
+            document.getElementById('totalMinutes').innerText = totalTimeSum;
+
+            // 5. 渲染準備中
+            const prepContainer = document.getElementById('preparingList');
+            prepContainer.innerHTML = '';
+            data.preparing.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'number-card prep-card';
+                card.innerHTML = `${item.number}`;
+                prepContainer.appendChild(card);
+            });
+        }
+
+        updateDisplay();
+        window.addEventListener('storage', updateDisplay);
+        setInterval(updateDisplay, 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>取餐叫號系統 - 後台控制</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 { text-align: center; color: #333; }
+        .control-panel, .section-box {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .tag-group {
+            margin-bottom: 12px;
+        }
+        .tag-btn {
+            background-color: #6c757d;
+            font-size: 0.9rem;
+            padding: 6px 12px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        .tag-btn:hover { background-color: #5a6268; }
+
+        input, button, textarea {
+            padding: 10px;
+            font-size: 1rem;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button {
+            cursor: pointer;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover { background-color: #0056b3; }
+        ul { list-style: none; padding: 0; }
+        li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f9f9f9;
+            padding: 10px 15px;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 5px;
+            border-radius: 4px;
+        }
+        .btn-move { background-color: #28a745; }
+        .btn-move:hover { background-color: #218838; }
+        .btn-delete { background-color: #dc3545; }
+        .btn-delete:hover { background-color: #c82333; }
+        .btn-add30 { background-color: #17a2b8; padding: 6px 10px; font-size: 0.9rem; }
+        .btn-add30:hover { background-color: #138496; }
+        .countdown-info {
+            color: #d9534f;
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>後台控制面板</h1>
+
+    <!-- 畫面資訊設定 (店名與跑馬燈) -->
+    <div class="control-panel">
+        <h3>螢幕顯示設定 (留空則不顯示)</h3>
+        <div style="margin-bottom: 10px;">
+            <label style="display:inline-block; width: 90px; font-weight:bold;">店名字幕：</label>
+            <input type="text" id="inputStoreName" placeholder="例如：OO手作早午餐" style="width: 350px;" oninput="updateSettings()">
+        </div>
+        <div>
+            <label style="display:inline-block; width: 90px; font-weight:bold;">跑馬燈公告：</label>
+            <input type="text" id="inputMarquee" placeholder="例如：今日特餐已售完，感謝大家支持！" style="width: 350px;" oninput="updateSettings()">
+        </div>
+    </div>
+
+    <!-- 新增準備中號碼 -->
+    <div class="control-panel">
+        <h3>新增準備中號碼</h3>
+        <div class="tag-group">
+            <button type="button" class="tag-btn" onclick="insertTag('自取-')">自取</button>
+            <button type="button" class="tag-btn" onclick="insertTag('網路-')">網路</button>
+            <button type="button" class="tag-btn" onclick="insertTag('電話-')">電話</button>
+            <button type="button" class="tag-btn" onclick="insertTag('Foodpanda-')">Foodpanda</button>
+            <button type="button" class="tag-btn" onclick="insertTag('Uber eats-')">Uber eats</button>
+        </div>
+
+        <input type="text" id="inputNumber" placeholder="請輸入或點選上方選項..." style="width: 220px;">
+        <input type="number" id="inputTime" placeholder="預估製作分" value="5" style="width: 100px;">
+        <button onclick="addPreparing()">新增號碼</button>
+    </div>
+
+    <!-- 準備中清單 -->
+    <div class="section-box">
+        <h3>準備中清單</h3>
+        <ul id="adminPrepList"></ul>
+    </div>
+
+    <!-- 請取餐清單 -->
+    <div class="section-box">
+        <h3>請取餐清單 (自動倒數消失)</h3>
+        <ul id="adminReadyList"></ul>
+    </div>
+
+    <script>
+        function insertTag(text) {
+            const numInput = document.getElementById('inputNumber');
+            numInput.value = text;
+            numInput.focus();
+        }
+
+        function getData() {
+            return JSON.parse(localStorage.getItem('queueData')) || { ready: [], preparing: [], storeName: '', marquee: '' };
+        }
+
+        function saveData(data) {
+            localStorage.setItem('queueData', JSON.stringify(data));
+            renderAdmin();
+        }
+
+        // 即時更新店名與跑馬燈設定
+        function updateSettings() {
+            const data = getData();
+            data.storeName = document.getElementById('inputStoreName').value;
+            data.marquee = document.getElementById('inputMarquee').value;
+            localStorage.setItem('queueData', JSON.stringify(data));
+        }
+
+        function addPreparing() {
+            const numInput = document.getElementById('inputNumber');
+            const timeInput = document.getElementById('inputTime');
+            const number = numInput.value.trim();
+            const time = timeInput.value.trim();
+
+            if (!number) {
+                alert('請輸入號碼或名稱！');
+                return;
+            }
+
+            const data = getData();
+            data.preparing.push({ number, time });
+            saveData(data);
+
+            numInput.value = '';
+            numInput.focus();
+        }
+
+        function moveToReady(index) {
+            const data = getData();
+            const item = data.preparing.splice(index, 1)[0];
+            
+            let defaultSeconds = 60; // 預設 1 分鐘
+            data.ready.push({
+                number: item.number,
+                expireTime: Date.now() + defaultSeconds * 1000,
+                totalSeconds: defaultSeconds
+            });
+            saveData(data);
+        }
+
+        function updateReadyTime(index, newMin) {
+            const data = getData();
+            const secs = Number(newMin) * 60;
+            data.ready[index].expireTime = Date.now() + secs * 1000;
+            data.ready[index].totalSeconds = secs;
+            saveData(data);
+        }
+
+        function add30Seconds(index) {
+            const data = getData();
+            const now = Date.now();
+            if (data.ready[index].expireTime < now) {
+                data.ready[index].expireTime = now + 30 * 1000;
+            } else {
+                data.ready[index].expireTime += 30 * 1000;
+            }
+            data.ready[index].totalSeconds = Math.max(0, (data.ready[index].expireTime - now) / 1000);
+            saveData(data);
+        }
+
+        function deletePrep(index) {
+            const data = getData();
+            data.preparing.splice(index, 1);
+            saveData(data);
+        }
+
+        function deleteReady(index) {
+            const data = getData();
+            data.ready.splice(index, 1);
+            saveData(data);
+        }
+
+        function renderAdmin() {
+            const data = getData();
+
+            // 確保初次載入把文字對應到輸入框
+            if(document.getElementById('inputStoreName').value !== data.storeName && document.activeElement !== document.getElementById('inputStoreName')) {
+                document.getElementById('inputStoreName').value = data.storeName || '';
+            }
+            if(document.getElementById('inputMarquee').value !== data.marquee && document.activeElement !== document.getElementById('inputMarquee')) {
+                document.getElementById('inputMarquee').value = data.marquee || '';
+            }
+
+            // 渲染準備中
+            const prepUl = document.getElementById('adminPrepList');
+            prepUl.innerHTML = '';
+            data.preparing.forEach((item, index) => {
+                prepUl.innerHTML += `
+                    <li>
+                        <span><b>${item.number}</b> (耗時: ${item.time}分)</span>
+                        <div>
+                            <button class="btn-move" onclick="moveToReady(${index})">移至請取餐</button>
+                            <button class="btn-delete" onclick="deletePrep(${index})">刪除</button>
+                        </div>
+                    </li>
+                `;
+            });
+
+            // 渲染請取餐
+            const readyUl = document.getElementById('adminReadyList');
+            readyUl.innerHTML = '';
+            const now = Date.now();
+
+            data.ready.forEach((item, index) => {
+                const remainingSecs = Math.max(0, Math.ceil((item.expireTime - now) / 1000));
+                const mins = Math.floor(remainingSecs / 60);
+                const secs = remainingSecs % 60;
+                const currentMinSetting = Math.round(item.totalSeconds / 60);
+
+                readyUl.innerHTML += `
+                    <li>
+                        <div>
+                            <b>${item.number}</b>
+                            <span class="countdown-info">剩餘: ${mins}分${secs < 10 ? '0' : ''}${secs}秒</span>
+                        </div>
+                        <div>
+                            <button class="btn-add30" onclick="add30Seconds(${index})">+30秒</button>
+                            設分: <input type="number" value="${currentMinSetting}" min="1" style="width: 50px; padding: 5px;" onchange="updateReadyTime(${index}, this.value)"> 
+                            <button class="btn-delete" onclick="deleteReady(${index})">手動刪除</button>
+                        </div>
+                    </li>
+                `;
+            });
+        }
+
+        setInterval(() => {
+            const data = getData();
+            const now = Date.now();
+
+            if (data.ready && data.ready.length > 0) {
+                const filteredReady = data.ready.filter(item => item.expireTime > now);
+                if (filteredReady.length !== data.ready.length) {
+                    data.ready = filteredReady;
+                    localStorage.setItem('queueData', JSON.stringify(data));
+                }
+            }
+            renderAdmin();
+        }, 1000);
+
+        renderAdmin();
+    </script>
+</body>
+</html>
