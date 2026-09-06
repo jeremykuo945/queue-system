@@ -29,18 +29,16 @@
             overflow: hidden;
         }
 
-        /* 頂部店名字幕區塊 */
         #storeTitleHeader {
             text-align: center;
             font-size: 2.2rem;
             font-weight: 800;
             color: #4A3B32;
             letter-spacing: 3px;
-            display: none; /* 預設隱藏，有資料才顯示 */
+            display: none;
             padding: 2px 0;
         }
 
-        /* 中間叫號主區域 */
         .main-content {
             flex: 1;
             display: flex;
@@ -143,6 +141,18 @@
             color: var(--ready-text);
         }
 
+        /* 新增卡片時的放大閃爍提醒動畫 */
+        .new-alert {
+            animation: popAlert 1.2s ease-in-out;
+        }
+
+        @keyframes popAlert {
+            0% { transform: scale(1); background-color: #C8E6C9; }
+            30% { transform: scale(1.15); background-color: #81C784; color: #FFF; box-shadow: 0 0 25px rgba(76,175,80,0.6); }
+            60% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
         .ready-subtext {
             font-size: 1rem;
             color: #388E3C;
@@ -157,7 +167,6 @@
             color: var(--prep-text);
         }
 
-        /* 底部跑馬燈宣告區塊 */
         #marqueeFooter {
             background-color: #FFF3CD;
             border: 1px solid #FFEEBA;
@@ -165,7 +174,7 @@
             padding: 10px 15px;
             overflow: hidden;
             white-space: nowrap;
-            display: none; /* 預設隱藏 */
+            display: none;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
             flex-shrink: 0;
         }
@@ -187,10 +196,8 @@
 </head>
 <body>
 
-    <!-- 頂部店名 -->
     <div id="storeTitleHeader"></div>
 
-    <!-- 中間叫號主區域 -->
     <div class="main-content">
         <div class="column ready">
             <div class="column-header">
@@ -210,16 +217,16 @@
         </div>
     </div>
 
-    <!-- 底部跑馬燈 -->
     <div id="marqueeFooter">
         <div class="marquee-text" id="marqueeContent"></div>
     </div>
 
     <script>
+        let lastReadyState = [];
+
         function updateDisplay() {
             const data = JSON.parse(localStorage.getItem('queueData')) || { ready: [], preparing: [], storeName: '', marquee: '' };
             
-            // 1. 處理頂部店名顯示與隱藏
             const storeHeader = document.getElementById('storeTitleHeader');
             if (data.storeName && data.storeName.trim() !== '') {
                 storeHeader.innerText = data.storeName;
@@ -228,7 +235,6 @@
                 storeHeader.style.display = 'none';
             }
 
-            // 2. 處理底部跑馬燈顯示與隱藏
             const marqueeFooter = document.getElementById('marqueeFooter');
             const marqueeContent = document.getElementById('marqueeContent');
             if (data.marquee && data.marquee.trim() !== '') {
@@ -238,24 +244,30 @@
                 marqueeFooter.style.display = 'none';
             }
 
-            // 3. 渲染請取餐
+            // 檢查是否有「新的號碼」加入請取餐清單以播放動畫
+            const currentReadyNumbers = data.ready.map(i => i.number);
+            const newlyAdded = currentReadyNumbers.filter(num => !lastReadyState.includes(num));
+            lastReadyState = currentReadyNumbers;
+
             const readyContainer = document.getElementById('readyList');
             readyContainer.innerHTML = '';
             data.ready.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'number-card ready-card';
+                // 如果是剛加入的號碼，加上動態特效類別
+                if (newlyAdded.includes(item.number)) {
+                    card.classList.add('new-alert');
+                }
                 card.innerHTML = `${item.number}<span class="ready-subtext">請立刻取餐</span>`;
                 readyContainer.appendChild(card);
             });
 
-            // 4. 計算準備中總時間加總
             let totalTimeSum = 0;
             data.preparing.forEach(item => {
                 totalTimeSum += Number(item.time) || 0;
             });
             document.getElementById('totalMinutes').innerText = totalTimeSum;
 
-            // 5. 渲染準備中
             const prepContainer = document.getElementById('preparingList');
             prepContainer.innerHTML = '';
             data.preparing.forEach(item => {
