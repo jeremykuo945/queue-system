@@ -68,13 +68,86 @@
             font-size: 0.9rem;
             margin-left: 10px;
         }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-box {
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            width: 350px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .modal-box h3 {
+            margin-top: 0;
+            color: #333;
+            font-size: 1.3rem;
+        }
+        .modal-box p {
+            color: #666;
+            margin-bottom: 25px;
+            font-size: 1.1rem;
+        }
+        .slide-track {
+            position: relative;
+            background: #e9ecef;
+            height: 50px;
+            border-radius: 25px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            user-select: none;
+        }
+        .slide-text {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #495057;
+            font-weight: bold;
+            font-size: 0.95rem;
+            pointer-events: none;
+        }
+        .slide-thumb {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 50px;
+            height: 50px;
+            background: #28a745;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .slide-thumb:hover { background: #218838; }
+        .btn-cancel {
+            background-color: #6c757d;
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            border-radius: 6px;
+        }
+        .btn-cancel:hover { background-color: #5a6268; }
     </style>
 </head>
 <body>
 
     <h1>後台控制面板</h1>
 
-    <!-- 螢幕與語音設定 -->
     <div class="control-panel">
         <h3>螢幕與語音設定</h3>
         <div style="margin-bottom: 10px;">
@@ -88,16 +161,15 @@
         <div style="margin-bottom: 10px; display: flex; align-items: center;">
             <label style="display:inline-block; width: 100px; font-weight:bold;">語音播報：</label>
             <input type="checkbox" id="inputVoiceEnabled" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 10px;" onchange="updateSettings()"> 
-            <span>啟用語音叫號</span>
+            <span>啟動前台語音叫號</span>
         </div>
         <div>
             <label style="display:inline-block; width: 100px; font-weight:bold;">語音格式：</label>
-            <input type="text" id="inputVoiceTemplate" value="請 {{number}} 號取餐" style="width: 320px;" oninput="updateSettings()">
-            <span style="font-size: 0.85rem; color: #666;">({{number}} 會自動替換為實際號碼)</span>
+            <input type="text" id="inputVoiceTemplate" value="{{number}}，請取餐" style="width: 320px;" oninput="updateSettings()">
+            <span style="font-size: 0.85rem; color: #666;">({{number}} 會自動拆開並加逗號唸出)</span>
         </div>
     </div>
 
-    <!-- 新增準備中號碼 -->
     <div class="control-panel">
         <h3>新增準備中號碼</h3>
         <div class="tag-group">
@@ -113,19 +185,33 @@
         <button onclick="addPreparing()">新增號碼</button>
     </div>
 
-    <!-- 準備中清單 -->
     <div class="section-box">
         <h3>準備中清單</h3>
         <ul id="adminPrepList"></ul>
     </div>
 
-    <!-- 請取餐清單 -->
     <div class="section-box">
         <h3>請取餐清單 (自動倒數消失)</h3>
         <ul id="adminReadyList"></ul>
     </div>
 
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal-box">
+            <h3>確認叫號</h3>
+            <p id="modalMessage">訂單號碼確認完成</p>
+            
+            <div class="slide-track" id="slideTrack">
+                <div class="slide-text">滑動以確認取餐 ➔</div>
+                <div class="slide-thumb" id="slideThumb">➔</div>
+            </div>
+
+            <button class="btn-cancel" onclick="closeModal()">取消</button>
+        </div>
+    </div>
+
     <script>
+        let currentTargetIndex = null;
+
         function insertTag(text) {
             const numInput = document.getElementById('inputNumber');
             numInput.value = text;
@@ -135,10 +221,10 @@
         function getData() {
             let data = JSON.parse(localStorage.getItem('queueData'));
             if (!data) {
-                data = { ready: [], preparing: [], storeName: '', marquee: '', voiceEnabled: true, voiceTemplate: '請 {{number}} 號取餐' };
+                data = { ready: [], preparing: [], storeName: '', marquee: '', voiceEnabled: true, voiceTemplate: '{{number}}，請取餐' };
             }
             if (data.voiceEnabled === undefined) data.voiceEnabled = true;
-            if (!data.voiceTemplate) data.voiceTemplate = '請 {{number}} 號取餐';
+            if (!data.voiceTemplate) data.voiceTemplate = '{{number}}，請取餐';
             return data;
         }
 
@@ -154,22 +240,6 @@
             data.voiceEnabled = document.getElementById('inputVoiceEnabled').checked;
             data.voiceTemplate = document.getElementById('inputVoiceTemplate').value;
             localStorage.setItem('queueData', JSON.stringify(data));
-        }
-
-        // 語音播放核心函式
-        function speakNumber(numberStr) {
-            const data = getData();
-            if (!data.voiceEnabled) return; // 如果關閉語音則跳過
-
-            if ('speechSynthesis' in window) {
-                let template = data.voiceTemplate || '請 {{number}} 號取餐';
-                let textToSpeak = template.replace('{{number}}', numberStr);
-
-                const utterance = new SpeechSynthesisUtterance(textToSpeak);
-                utterance.lang = 'zh-TW'; // 設定繁體中文語音
-                utterance.rate = 1.0;     // 語速
-                window.speechSynthesis.speak(utterance);
-            }
         }
 
         function addPreparing() {
@@ -191,20 +261,34 @@
             numInput.focus();
         }
 
-        function moveToReady(index) {
+        function openConfirmModal(index) {
             const data = getData();
-            const item = data.preparing.splice(index, 1)[0];
+            const item = data.preparing[index];
+            currentTargetIndex = index;
+
+            document.getElementById('modalMessage').innerText = `訂單 ${item.number} 確認完成`;
+            document.getElementById('confirmModal').style.display = 'flex';
+            resetSlider();
+        }
+
+        function closeModal() {
+            document.getElementById('confirmModal').style.display = 'none';
+            currentTargetIndex = null;
+        }
+
+        function confirmMoveToReady() {
+            if (currentTargetIndex === null) return;
+            const data = getData();
+            const item = data.preparing.splice(currentTargetIndex, 1)[0];
             
-            let defaultSeconds = 60; // 預設 1 分鐘
+            let defaultSeconds = 60;
             data.ready.push({
                 number: item.number,
                 expireTime: Date.now() + defaultSeconds * 1000,
                 totalSeconds: defaultSeconds
             });
             saveData(data);
-
-            // 觸發語音廣播
-            speakNumber(item.number);
+            closeModal();
         }
 
         function updateReadyTime(index, newMin) {
@@ -242,7 +326,6 @@
         function renderAdmin() {
             const data = getData();
 
-            // 同步設定值到介面
             if(document.activeElement !== document.getElementById('inputStoreName')) {
                 document.getElementById('inputStoreName').value = data.storeName || '';
             }
@@ -251,7 +334,7 @@
             }
             document.getElementById('inputVoiceEnabled').checked = data.voiceEnabled;
             if(document.activeElement !== document.getElementById('inputVoiceTemplate')) {
-                document.getElementById('inputVoiceTemplate').value = data.voiceTemplate || '請 {{number}} 號取餐';
+                document.getElementById('inputVoiceTemplate').value = data.voiceTemplate || '{{number}}，請取餐';
             }
 
             const prepUl = document.getElementById('adminPrepList');
@@ -261,7 +344,7 @@
                     <li>
                         <span><b>${item.number}</b> (耗時: ${item.time}分)</span>
                         <div>
-                            <button class="btn-move" onclick="moveToReady(${index})">移至請取餐</button>
+                            <button class="btn-move" onclick="openConfirmModal(${index})">移至請取餐</button>
                             <button class="btn-delete" onclick="deletePrep(${index})">刪除</button>
                         </div>
                     </li>
@@ -293,6 +376,68 @@
                 `;
             });
         }
+
+        const thumb = document.getElementById('slideThumb');
+        const track = document.getElementById('slideTrack');
+        let isDragging = false;
+        let startX = 0;
+
+        function resetSlider() {
+            thumb.style.left = '0px';
+            thumb.style.background = '#28a745';
+        }
+
+        thumb.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            let diff = e.clientX - startX;
+            let maxDist = track.clientWidth - thumb.clientWidth;
+            if (diff < 0) diff = 0;
+            if (diff > maxDist) diff = maxDist;
+            thumb.style.left = diff + 'px';
+
+            if (diff >= maxDist - 5) {
+                isDragging = false;
+                confirmMoveToReady();
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                resetSlider();
+            }
+        });
+
+        thumb.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            startX = e.touches[0].clientX;
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            let diff = e.touches[0].clientX - startX;
+            let maxDist = track.clientWidth - thumb.clientWidth;
+            if (diff < 0) diff = 0;
+            if (diff > maxDist) diff = maxDist;
+            thumb.style.left = diff + 'px';
+
+            if (diff >= maxDist - 5) {
+                isDragging = false;
+                confirmMoveToReady();
+            }
+        });
+
+        window.addEventListener('touchend', () => {
+            if (isDragging) {
+                isDragging = false;
+                resetSlider();
+            }
+        });
 
         setInterval(() => {
             const data = getData();
