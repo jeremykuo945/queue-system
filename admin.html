@@ -163,10 +163,15 @@
             <input type="checkbox" id="inputVoiceEnabled" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 10px;" onchange="updateSettings()"> 
             <span>啟動前台語音叫號</span>
         </div>
-        <div>
+        <div style="margin-bottom: 10px;">
             <label style="display:inline-block; width: 100px; font-weight:bold;">語音格式：</label>
-            <input type="text" id="inputVoiceTemplate" value="{{number}}，請取餐" style="width: 320px;" oninput="updateSettings()">
-            <span style="font-size: 0.85rem; color: #666;">({{number}} 會自動拆開並加逗號唸出)</span>
+            <input type="text" id="inputVoiceTemplate" value="請{{number}}顧客取餐，謝謝" style="width: 320px;" oninput="updateSettings()">
+            <span style="font-size: 0.85rem; color: #666;">({{number}} 中的數字會自動加逗號唸出)</span>
+        </div>
+        <div>
+            <label style="display:inline-block; width: 100px; font-weight:bold;">語音語速：</label>
+            <input type="number" id="inputVoiceRate" value="1.0" min="0.5" max="2.0" step="0.1" style="width: 100px;" oninput="updateSettings()">
+            <span style="font-size: 0.85rem; color: #666;">(範圍 0.5 ~ 2.0，預設 1.0)</span>
         </div>
     </div>
 
@@ -221,10 +226,19 @@
         function getData() {
             let data = JSON.parse(localStorage.getItem('queueData'));
             if (!data) {
-                data = { ready: [], preparing: [], storeName: '', marquee: '', voiceEnabled: true, voiceTemplate: '{{number}}，請取餐' };
+                data = { 
+                    ready: [], 
+                    preparing: [], 
+                    storeName: '', 
+                    marquee: '', 
+                    voiceEnabled: true, 
+                    voiceTemplate: '請{{number}}顧客取餐，謝謝',
+                    voiceRate: 1.0
+                };
             }
             if (data.voiceEnabled === undefined) data.voiceEnabled = true;
-            if (!data.voiceTemplate) data.voiceTemplate = '{{number}}，請取餐';
+            if (!data.voiceTemplate) data.voiceTemplate = '請{{number}}顧客取餐，謝謝';
+            if (data.voiceRate === undefined) data.voiceRate = 1.0;
             return data;
         }
 
@@ -239,6 +253,7 @@
             data.marquee = document.getElementById('inputMarquee').value;
             data.voiceEnabled = document.getElementById('inputVoiceEnabled').checked;
             data.voiceTemplate = document.getElementById('inputVoiceTemplate').value;
+            data.voiceRate = parseFloat(document.getElementById('inputVoiceRate').value) || 1.0;
             localStorage.setItem('queueData', JSON.stringify(data));
         }
 
@@ -334,7 +349,10 @@
             }
             document.getElementById('inputVoiceEnabled').checked = data.voiceEnabled;
             if(document.activeElement !== document.getElementById('inputVoiceTemplate')) {
-                document.getElementById('inputVoiceTemplate').value = data.voiceTemplate || '{{number}}，請取餐';
+                document.getElementById('inputVoiceTemplate').value = data.voiceTemplate || '請{{number}}顧客取餐，謝謝';
+            }
+            if(document.activeElement !== document.getElementById('inputVoiceRate')) {
+                document.getElementById('inputVoiceRate').value = data.voiceRate !== undefined ? data.voiceRate : 1.0;
             }
 
             const prepUl = document.getElementById('adminPrepList');
