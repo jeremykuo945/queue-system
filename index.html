@@ -14,7 +14,132 @@
             justify-content: center;
             height: 100vh;
             margin: 0;
+            position: relative;
         }
+
+        /* 右上角使用者選單容器 */
+        .user-menu-container {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            display: none;
+            z-index: 1000;
+        }
+
+        /* 未展開的按鈕外觀 */
+        .user-menu-btn {
+            display: flex;
+            align-items: center;
+            background: #FFFFFF;
+            border: 1px solid #DADCE0;
+            padding: 6px 14px 6px 6px;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: background 0.2s;
+        }
+        .user-menu-btn:hover {
+            background: #F8F9FA;
+        }
+
+        /* 預設圓形頭像 */
+        .avatar-circle {
+            width: 36px;
+            height: 36px;
+            background-color: #DADCE0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-right: 10px;
+        }
+        .avatar-circle svg {
+            width: 24px;
+            height: 24px;
+            fill: #5F6368;
+            margin-top: 6px; /* 模擬半身人像對齊 */
+        }
+
+        .user-greeting {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #3C4043;
+        }
+
+        /* 下拉選單面板 */
+        .dropdown-panel {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 50px;
+            width: 320px;
+            background: #FFFFFF;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border: 1px solid #DADCE0;
+            overflow: hidden;
+            text-align: left;
+            animation: fadeIn 0.15s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 下拉頂部資訊 */
+        .dropdown-header {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #E8EAED;
+            background: #FFFFFF;
+        }
+        .dropdown-header .avatar-circle {
+            width: 50px;
+            height: 50px;
+            margin-right: 15px;
+        }
+        .dropdown-header .avatar-circle svg {
+            width: 34px;
+            height: 34px;
+            margin-top: 8px;
+        }
+        .user-info-text .name {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #202124;
+            margin-bottom: 2px;
+        }
+        .user-info-text .email {
+            font-size: 0.85rem;
+            color: #5F6368;
+        }
+
+        /* 下拉選單選項 */
+        .dropdown-item {
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: #3C4043;
+            transition: background 0.2s;
+            border-bottom: 1px solid #F1F3F4;
+            text-decoration: none;
+        }
+        .dropdown-item:hover {
+            background: #F8F9FA;
+        }
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+        .dropdown-item span {
+            margin-right: 12px;
+            font-size: 1.1rem;
+        }
+
+        /* 中央主選單容器 */
         .container {
             background: #FFFFFF;
             padding: 30px 40px;
@@ -60,7 +185,6 @@
             box-sizing: border-box;
             font-size: 1rem;
         }
-        /* 密碼顯示切換按鈕 */
         .toggle-password {
             position: absolute;
             right: 12px;
@@ -85,32 +209,12 @@
             cursor: pointer;
             transition: transform 0.1s;
         }
-        .btn:active {
-            transform: scale(0.98);
-        }
-        .btn-primary {
-            background-color: #007BFF;
-            color: white;
-        }
-        .btn-primary:hover {
-            background-color: #0056b3;
-        }
-        .btn-display {
-            background-color: #E8F5E9;
-            color: #1B5E20;
-            border: 2px solid #66BB6A;
-        }
-        .btn-admin {
-            background-color: #E3F2FD;
-            color: #0D47A1;
-            border: 2px solid #42A5F5;
-        }
-        .btn-logout {
-            background-color: #F8D7DA;
-            color: #721C24;
-            border: 1px solid #F5C6CB;
-            margin-top: 20px;
-        }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background-color: #007BFF; color: white; }
+        .btn-primary:hover { background-color: #0056b3; }
+        .btn-display { background-color: #E8F5E9; color: #1B5E20; border: 2px solid #66BB6A; }
+        .btn-admin { background-color: #E3F2FD; color: #0D47A1; border: 2px solid #42A5F5; }
+        
         .link-group {
             display: flex;
             justify-content: space-between;
@@ -121,27 +225,67 @@
             cursor: pointer;
             font-size: 0.9rem;
         }
-        .toggle-link:hover {
-            text-decoration: underline;
-        }
-        .hidden {
+        .toggle-link:hover { text-decoration: underline; }
+        .hidden { display: none !important; }
+        .error-msg { color: #dc3545; font-size: 0.85rem; margin-bottom: 10px; }
+        .success-msg { color: #28a745; font-size: 0.85rem; margin-bottom: 10px; }
+
+        /* 資料設定彈出視窗 (Modal) */
+        .modal-overlay {
             display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
         }
-        .error-msg {
-            color: #dc3545;
-            font-size: 0.85rem;
-            margin-bottom: 10px;
+        .modal-box {
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            width: 350px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         }
-        .success-msg {
-            color: #28a745;
-            font-size: 0.85rem;
-            margin-bottom: 10px;
-        }
+        .modal-box h3 { margin-top: 0; color: #333; }
     </style>
 </head>
 <body>
+
+    <!-- 右上角使用者下拉選單 -->
+    <div id="userMenuContainer" class="user-menu-container">
+        <div class="user-menu-btn" onclick="toggleDropdown(event)">
+            <div class="avatar-circle">
+                <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            </div>
+            <span class="user-greeting" id="topBarGreeting">使用者，你好 !</span>
+        </div>
+
+        <div id="dropdownPanel" class="dropdown-panel">
+            <div class="dropdown-header">
+                <div class="avatar-circle">
+                    <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                </div>
+                <div class="user-info-text">
+                    <div class="name" id="dropName">使用者名稱</div>
+                    <div class="email" id="dropAccount">account</div>
+                </div>
+            </div>
+            <!-- 第一欄：資料設定 -->
+            <div class="dropdown-item" onclick="openSettingsModal()">
+                <span>⚙️</span> 資料設定
+            </div>
+            <!-- 第二欄：登出 -->
+            <div class="dropdown-item" onclick="logout()" style="color: #d9534f;">
+                <span>🚪</span> 登出系統
+            </div>
+        </div>
+    </div>
+
+    <!-- 主畫面容器 -->
     <div class="container">
-        <!-- 認證區塊 (登入 / 註冊 / 忘記密碼) -->
+        <!-- 認證表單區塊 -->
         <div id="authSection">
             <h1 id="formTitle">系統登入</h1>
             <p id="formSubtitle">請輸入帳號密碼以使用叫號系統</p>
@@ -149,19 +293,14 @@
             <div id="errorMsg" class="error-msg"></div>
             <div id="successMsg" class="success-msg"></div>
 
-            <!-- 名稱 (註冊用) -->
             <input type="text" id="displayName" class="hidden" placeholder="請輸入您的名稱或店名">
-            
-            <!-- 帳號 -->
             <input type="text" id="username" placeholder="請輸入帳號">
             
-            <!-- 密碼 (含查看密碼按鈕) -->
             <div class="input-group">
                 <input type="password" id="password" placeholder="請輸入密碼">
                 <span class="toggle-password" id="togglePassBtn" onclick="togglePasswordVisibility()">👁️</span>
             </div>
             
-            <!-- 混淆驗證碼 (註冊用選填) -->
             <input type="text" id="inviteCode" class="hidden" placeholder="註冊驗證碼">
 
             <button class="btn btn-primary" id="authBtn" onclick="handleAuth()">登入</button>
@@ -172,27 +311,64 @@
             </div>
         </div>
 
-        <!-- 已登入畫面：功能選單 -->
+        <!-- 已登入後的功能選單 -->
         <div id="menuSection" class="hidden">
             <h1 id="welcomeTitle">歡迎回來！</h1>
             <p>請選擇您要進入的頁面</p>
             <a href="display.html" class="btn btn-display" target="_blank">📺 開啟前台顯示螢幕</a>
             <a href="admin.html" class="btn btn-admin" target="_blank">⚙️ 開啟後台控制面板</a>
-            <button class="btn btn-logout" onclick="logout()">登出系統</button>
+        </div>
+    </div>
+
+    <!-- 資料設定彈出視窗 -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-box">
+            <h3>修改個人資料</h3>
+            <div id="settingsError" class="error-msg"></div>
+            <div id="settingsSuccess" class="success-msg"></div>
+
+            <div style="text-align: left; margin-bottom: 5px; font-size: 0.9rem; font-weight: bold;">名稱：</div>
+            <input type="text" id="editName" placeholder="請輸入新名稱">
+
+            <div style="text-align: left; margin-bottom: 5px; font-size: 0.9rem; font-weight: bold;">登入帳號：</div>
+            <input type="text" id="editUsername" placeholder="請輸入新帳號">
+
+            <div style="text-align: left; margin-bottom: 5px; font-size: 0.9rem; font-weight: bold;">新密碼 (若不修改請留空)：</div>
+            <input type="password" id="editPassword" placeholder="留空則保持不變">
+
+            <button class="btn btn-primary" onclick="saveSettings()">儲存修改</button>
+            <button class="btn" style="background-color: #6c757d; color: white;" onclick="closeSettingsModal()">取消</button>
         </div>
     </div>
 
     <script>
-        let currentMode = 'login'; // 'login', 'register', 'forgot'
+        let currentMode = 'login';
 
         window.addEventListener('DOMContentLoaded', () => {
-            const loggedInName = localStorage.getItem('loggedInName');
-            if (loggedInName) {
-                showMenu(loggedInName);
+            const loggedInUser = localStorage.getItem('loggedInUser');
+            if (loggedInUser) {
+                let usersDB = JSON.parse(localStorage.getItem('usersDB')) || {};
+                let userInfo = usersDB[loggedInUser];
+                let currentName = userInfo ? userInfo.name : loggedInUser;
+                showMenu(loggedInUser, currentName);
             }
         });
 
-        // 切換密碼顯示/隱藏
+        // 點擊畫面其他地方關閉下拉選單
+        window.addEventListener('click', (e) => {
+            const container = document.getElementById('userMenuContainer');
+            const dropdown = document.getElementById('dropdownPanel');
+            if (!container.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        function toggleDropdown(e) {
+            e.stopPropagation();
+            const dropdown = document.getElementById('dropdownPanel');
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        }
+
         function togglePasswordVisibility() {
             const passInput = document.getElementById('password');
             const btn = document.getElementById('togglePassBtn');
@@ -205,7 +381,6 @@
             }
         }
 
-        // 切換表單模式 (登入 / 註冊 / 忘記密碼)
         function switchMode(mode) {
             currentMode = mode;
             document.getElementById('errorMsg').innerText = '';
@@ -239,7 +414,7 @@
                 forgotText.style.display = 'none';
             } else {
                 document.getElementById('formTitle').innerText = '系統登入';
-                document.getElementById('formSubtitle').innerText = '請輸入帳號密碼以使用系統';
+                document.getElementById('formSubtitle').innerText = '請輸入帳號密碼以使用叫號系統';
                 authBtn.innerText = '登入';
                 displayNameInput.classList.add('hidden');
                 inviteCodeInput.classList.add('hidden');
@@ -265,7 +440,6 @@
 
             let usersDB = JSON.parse(localStorage.getItem('usersDB')) || {};
 
-            // 若資料庫完全空，初始化一組預設帳號
             if (Object.keys(usersDB).length === 0) {
                 usersDB['admin'] = { password: '1234', name: '管理員' };
                 localStorage.setItem('usersDB', JSON.stringify(usersDB));
@@ -287,7 +461,6 @@
                 setTimeout(() => switchMode('login'), 1500);
 
             } else if (currentMode === 'forgot') {
-                // 忘記密碼邏輯：檢查帳號是否存在，存在則直接更新密碼
                 if (!usersDB[user]) {
                     errorDiv.innerText = '查無此帳號，請確認帳號是否正確！';
                     return;
@@ -299,30 +472,104 @@
                 setTimeout(() => switchMode('login'), 1500);
 
             } else {
-                // 登入邏輯
                 if (usersDB[user] && usersDB[user].password === pass) {
                     const currentName = usersDB[user].name || user;
                     localStorage.setItem('loggedInUser', user);
-                    localStorage.setItem('loggedInName', currentName);
-                    showMenu(currentName);
+                    showMenu(user, currentName);
                 } else {
                     errorDiv.innerText = '帳號或密碼錯誤！';
                 }
             }
         }
 
-        function showMenu(name) {
+        function showMenu(user, name) {
             document.getElementById('welcomeTitle').innerText = `${name}，歡迎回來！`;
             document.getElementById('authSection').classList.add('hidden');
             document.getElementById('menuSection').classList.remove('hidden');
+
+            // 顯示右上角選單並更新內容
+            document.getElementById('userMenuContainer').style.display = 'block';
+            document.getElementById('topBarGreeting').innerText = `${name}，你好 !`;
+            document.getElementById('dropName').innerText = name;
+            document.getElementById('dropAccount').innerText = user;
         }
 
         function logout() {
             localStorage.removeItem('loggedInUser');
-            localStorage.removeItem('loggedInName');
+            document.getElementById('userMenuContainer').style.display = 'none';
+            document.getElementById('dropdownPanel').style.display = 'none';
             document.getElementById('menuSection').classList.add('hidden');
             document.getElementById('authSection').classList.remove('hidden');
             switchMode('login');
+        }
+
+        // 開啟資料設定彈出視窗
+        function openSettingsModal() {
+            document.getElementById('dropdownPanel').style.display = 'none';
+            const currentUser = localStorage.getItem('loggedInUser');
+            let usersDB = JSON.parse(localStorage.getItem('usersDB')) || {};
+            let userInfo = usersDB[currentUser];
+
+            document.getElementById('editName').value = userInfo ? userInfo.name : currentUser;
+            document.getElementById('editUsername').value = currentUser;
+            document.getElementById('editPassword').value = '';
+            document.getElementById('settingsError').innerText = '';
+            document.getElementById('settingsSuccess').innerText = '';
+            document.getElementById('settingsModal').style.display = 'flex';
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function saveSettings() {
+            const currentUser = localStorage.getItem('loggedInUser');
+            const newName = document.getElementById('editName').value.trim();
+            const newUsername = document.getElementById('editUsername').value.trim();
+            const newPassword = document.getElementById('editPassword').value.trim();
+            const errDiv = document.getElementById('settingsError');
+            const succDiv = document.getElementById('settingsSuccess');
+
+            errDiv.innerText = '';
+            succDiv.innerText = '';
+
+            if (!newName || !newUsername) {
+                errDiv.innerText = '名稱與帳號不得為空！';
+                return;
+            }
+
+            let usersDB = JSON.parse(localStorage.getItem('usersDB')) || {};
+
+            // 如果更改了帳號名稱，檢查新帳號是否被佔用
+            if (newUsername !== currentUser && usersDB[newUsername]) {
+                errDiv.innerText = '此新帳號已被其他人使用！';
+                return;
+            }
+
+            // 取得原本的密碼
+            let passwordToSave = usersDB[currentUser] ? usersDB[currentUser].password : '1234';
+            if (newPassword !== '') {
+                passwordToSave = newPassword;
+            }
+
+            // 若帳號有變動，刪除舊的 key，改建新的 key
+            if (newUsername !== currentUser) {
+                delete usersDB[currentUser];
+            }
+
+            usersDB[newUsername] = {
+                password: passwordToSave,
+                name: newName
+            };
+
+            localStorage.setItem('usersDB', JSON.stringify(usersDB));
+            localStorage.setItem('loggedInUser', newUsername);
+
+            succDiv.innerText = '資料更新成功！';
+            setTimeout(() => {
+                closeSettingsModal();
+                showMenu(newUsername, newName);
+            }, 1000);
         }
     </script>
 </body>
