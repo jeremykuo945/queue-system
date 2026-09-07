@@ -36,7 +36,22 @@
             margin-bottom: 20px;
             font-size: 0.95rem;
         }
-        input {
+        .input-group {
+            position: relative;
+            width: 100%;
+            margin-bottom: 12px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            padding-right: 40px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            margin-bottom: 0;
+        }
+        input:not(.input-group input) {
             width: 100%;
             padding: 12px;
             margin-bottom: 12px;
@@ -44,6 +59,17 @@
             border-radius: 8px;
             box-sizing: border-box;
             font-size: 1rem;
+        }
+        /* 密碼顯示切換按鈕 */
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #7F8C8D;
+            font-size: 1.1rem;
+            user-select: none;
         }
         .btn {
             display: block;
@@ -85,12 +111,15 @@
             border: 1px solid #F5C6CB;
             margin-top: 20px;
         }
+        .link-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
         .toggle-link {
             color: #007BFF;
             cursor: pointer;
             font-size: 0.9rem;
-            margin-top: 10px;
-            display: inline-block;
         }
         .toggle-link:hover {
             text-decoration: underline;
@@ -103,28 +132,44 @@
             font-size: 0.85rem;
             margin-bottom: 10px;
         }
+        .success-msg {
+            color: #28a745;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- 未登入畫面：登入與註冊表單 -->
+        <!-- 認證區塊 (登入 / 註冊 / 忘記密碼) -->
         <div id="authSection">
             <h1 id="formTitle">系統登入</h1>
             <p id="formSubtitle">請輸入帳號密碼以使用叫號系統</p>
             
             <div id="errorMsg" class="error-msg"></div>
+            <div id="successMsg" class="success-msg"></div>
 
-            <!-- 註冊時才顯示的名稱欄位 -->
+            <!-- 名稱 (註冊用) -->
             <input type="text" id="displayName" class="hidden" placeholder="請輸入您的名稱或店名">
             
+            <!-- 帳號 -->
             <input type="text" id="username" placeholder="請輸入帳號">
-            <input type="password" id="password" placeholder="請輸入密碼">
             
-            <!-- 混淆驗證碼（非必填） -->
+            <!-- 密碼 (含查看密碼按鈕) -->
+            <div class="input-group">
+                <input type="password" id="password" placeholder="請輸入密碼">
+                <span class="toggle-password" id="togglePassBtn" onclick="togglePasswordVisibility()">👁️</span>
+            </div>
+            
+            <!-- 混淆驗證碼 (註冊用選填) -->
             <input type="text" id="inviteCode" class="hidden" placeholder="註冊驗證碼">
 
             <button class="btn btn-primary" id="authBtn" onclick="handleAuth()">登入</button>
-            <span class="toggle-link" id="toggleText" onclick="toggleMode()">沒有帳號？點此註冊</span>
+            
+            <div class="link-group">
+                <span class="toggle-link" id="toggleText" onclick="switchMode('register')">註冊新帳號</span>
+                <span class="toggle-link" id="forgotText" onclick="switchMode('forgot')">忘記密碼？</span>
+            </div>
         </div>
 
         <!-- 已登入畫面：功能選單 -->
@@ -138,7 +183,7 @@
     </div>
 
     <script>
-        let isRegisterMode = false;
+        let currentMode = 'login'; // 'login', 'register', 'forgot'
 
         window.addEventListener('DOMContentLoaded', () => {
             const loggedInName = localStorage.getItem('loggedInName');
@@ -147,31 +192,59 @@
             }
         });
 
-        function toggleMode() {
-            isRegisterMode = !isRegisterMode;
+        // 切換密碼顯示/隱藏
+        function togglePasswordVisibility() {
+            const passInput = document.getElementById('password');
+            const btn = document.getElementById('togglePassBtn');
+            if (passInput.type === 'password') {
+                passInput.type = 'text';
+                btn.innerText = '🙈';
+            } else {
+                passInput.type = 'password';
+                btn.innerText = '👁️';
+            }
+        }
+
+        // 切換表單模式 (登入 / 註冊 / 忘記密碼)
+        function switchMode(mode) {
+            currentMode = mode;
             document.getElementById('errorMsg').innerText = '';
-            document.getElementById('displayName').value = '';
+            document.getElementById('successMsg').innerText = '';
             document.getElementById('username').value = '';
             document.getElementById('password').value = '';
+            document.getElementById('displayName').value = '';
             document.getElementById('inviteCode').value = '';
 
             const displayNameInput = document.getElementById('displayName');
             const inviteCodeInput = document.getElementById('inviteCode');
+            const toggleText = document.getElementById('toggleText');
+            const forgotText = document.getElementById('forgotText');
+            const authBtn = document.getElementById('authBtn');
 
-            if (isRegisterMode) {
+            if (mode === 'register') {
                 document.getElementById('formTitle').innerText = '註冊新帳號';
-                document.getElementById('formSubtitle').innerText = '設定您的專屬管理帳密';
-                document.getElementById('authBtn').innerText = '註冊';
-                document.getElementById('toggleText').innerText = '已有帳號？點此登入';
-                displayNameInput.classList.remove('hidden'); // 顯示名稱欄位
-                inviteCodeInput.classList.remove('hidden');  // 顯示驗證欄位
+                document.getElementById('formSubtitle').innerText = '設定您的管理帳密';
+                authBtn.innerText = '註冊';
+                displayNameInput.classList.remove('hidden');
+                inviteCodeInput.classList.remove('hidden');
+                toggleText.innerText = '已有帳號？點此登入';
+                forgotText.style.display = 'none';
+            } else if (mode === 'forgot') {
+                document.getElementById('formTitle').innerText = '重設密碼';
+                document.getElementById('formSubtitle').innerText = '請輸入您的帳號與新密碼';
+                authBtn.innerText = '確認修改密碼';
+                displayNameInput.classList.add('hidden');
+                inviteCodeInput.classList.add('hidden');
+                toggleText.innerText = '返回登入';
+                forgotText.style.display = 'none';
             } else {
                 document.getElementById('formTitle').innerText = '系統登入';
-                document.getElementById('formSubtitle').innerText = '請輸入帳號密碼以使用叫號系統';
-                document.getElementById('authBtn').innerText = '登入';
-                document.getElementById('toggleText').innerText = '沒有帳號？點此註冊';
-                displayNameInput.classList.add('hidden');    // 隱藏名稱欄位
-                inviteCodeInput.classList.add('hidden');     // 隱藏驗證欄位
+                document.getElementById('formSubtitle').innerText = '請輸入帳號密碼以使用系統';
+                authBtn.innerText = '登入';
+                displayNameInput.classList.add('hidden');
+                inviteCodeInput.classList.add('hidden');
+                toggleText.innerText = '註冊新帳號';
+                forgotText.style.display = 'inline';
             }
         }
 
@@ -180,32 +253,53 @@
             const pass = document.getElementById('password').value.trim();
             const name = document.getElementById('displayName').value.trim();
             const errorDiv = document.getElementById('errorMsg');
+            const successDiv = document.getElementById('successMsg');
 
-            if (!user || !pass || (isRegisterMode && !name)) {
-                errorDiv.innerText = '所有必要欄位皆不得為空！';
+            errorDiv.innerText = '';
+            successDiv.innerText = '';
+
+            if (!user || !pass) {
+                errorDiv.innerText = '帳號與密碼不得為空！';
                 return;
             }
 
             let usersDB = JSON.parse(localStorage.getItem('usersDB')) || {};
 
-            if (isRegisterMode) {
+            // 若資料庫完全空，初始化一組預設帳號
+            if (Object.keys(usersDB).length === 0) {
+                usersDB['admin'] = { password: '1234', name: '管理員' };
+                localStorage.setItem('usersDB', JSON.stringify(usersDB));
+            }
+
+            if (currentMode === 'register') {
+                if (!name) {
+                    errorDiv.innerText = '請輸入您的名稱或店名！';
+                    return;
+                }
                 if (usersDB[user]) {
                     errorDiv.innerText = '此帳號已被註冊過了！';
                     return;
                 }
-                // 儲存帳密與對應的名稱
                 usersDB[user] = { password: pass, name: name };
                 localStorage.setItem('usersDB', JSON.stringify(usersDB));
                 
-                alert('註冊成功！請直接登入');
-                toggleMode();
-            } else {
-                // 若完全沒有帳號，自動建立預設測試帳號
-                if (Object.keys(usersDB).length === 0) {
-                    usersDB['admin'] = { password: '1234', name: '管理員' };
-                    localStorage.setItem('usersDB', JSON.stringify(usersDB));
-                }
+                successDiv.innerText = '註冊成功！請切換至登入';
+                setTimeout(() => switchMode('login'), 1500);
 
+            } else if (currentMode === 'forgot') {
+                // 忘記密碼邏輯：檢查帳號是否存在，存在則直接更新密碼
+                if (!usersDB[user]) {
+                    errorDiv.innerText = '查無此帳號，請確認帳號是否正確！';
+                    return;
+                }
+                usersDB[user].password = pass;
+                localStorage.setItem('usersDB', JSON.stringify(usersDB));
+
+                successDiv.innerText = '密碼修改成功！請使用新密碼登入';
+                setTimeout(() => switchMode('login'), 1500);
+
+            } else {
+                // 登入邏輯
                 if (usersDB[user] && usersDB[user].password === pass) {
                     const currentName = usersDB[user].name || user;
                     localStorage.setItem('loggedInUser', user);
@@ -218,7 +312,6 @@
         }
 
         function showMenu(name) {
-            document.getElementById('welcomeTitleinnerText') = `${name}歡迎回來！請選擇您要進入的頁面`;
             document.getElementById('welcomeTitle').innerText = `${name}，歡迎回來！`;
             document.getElementById('authSection').classList.add('hidden');
             document.getElementById('menuSection').classList.remove('hidden');
@@ -229,10 +322,7 @@
             localStorage.removeItem('loggedInName');
             document.getElementById('menuSection').classList.add('hidden');
             document.getElementById('authSection').classList.remove('hidden');
-            document.getElementById('username').value = '';
-            document.getElementById('password').value = '';
-            document.getElementById('displayName').value = '';
-            document.getElementById('errorMsg').innerText = '';
+            switchMode('login');
         }
     </script>
 </body>
