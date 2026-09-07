@@ -17,37 +17,57 @@
         }
         .container {
             background: #FFFFFF;
-            padding: 40px;
+            padding: 30px 40px;
             border-radius: 20px;
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
             border: 1px solid #EAE6DF;
             text-align: center;
             max-width: 400px;
             width: 100%;
+            box-sizing: border-box;
         }
         h1 {
-            font-size: 2rem;
-            margin-bottom: 10px;
+            font-size: 1.8rem;
+            margin-bottom: 5px;
             color: #4A3B32;
         }
         p {
             color: #7F8C8D;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1rem;
         }
         .btn {
             display: block;
             width: 100%;
-            padding: 15px;
-            margin-bottom: 15px;
-            font-size: 1.2rem;
+            padding: 12px;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
             font-weight: bold;
             text-decoration: none;
-            border-radius: 12px;
+            border-radius: 8px;
             box-sizing: border-box;
+            border: none;
+            cursor: pointer;
             transition: transform 0.1s;
         }
         .btn:active {
             transform: scale(0.98);
+        }
+        .btn-primary {
+            background-color: #007BFF;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
         }
         .btn-display {
             background-color: #E8F5E9;
@@ -59,14 +79,161 @@
             color: #0D47A1;
             border: 2px solid #42A5F5;
         }
+        .btn-logout {
+            background-color: #F8D7DA;
+            color: #721C24;
+            border: 1px solid #F5C6CB;
+            margin-top: 20px;
+        }
+        .toggle-link {
+            color: #007BFF;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            display: inline-block;
+        }
+        .toggle-link:hover {
+            text-decoration: underline;
+        }
+        .hidden {
+            display: none;
+        }
+        .error-msg {
+            color: #dc3545;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>取餐叫號系統</h1>
-        <p>請選擇您要進入的頁面</p>
-        <a href="display.html" class="btn btn-display" target="_blank">📺 開啟前台顯示螢幕</a>
-        <a href="admin.html" class="btn btn-admin" target="_blank">⚙️ 開啟後台控制面板</a>
+        <!-- 未登入畫面：登入與註冊表單 -->
+        <div id="authSection">
+            <h1 id="formTitle">系統登入</h1>
+            <p id="formSubtitle">請輸入帳號密碼以使用叫號系統</p>
+            
+            <div id="errorMsg" class="error-msg"></div>
+
+            <!-- 註冊時才顯示的名稱欄位 -->
+            <input type="text" id="displayName" class="hidden" placeholder="請輸入您的名稱或店名">
+            
+            <input type="text" id="username" placeholder="請輸入帳號">
+            <input type="password" id="password" placeholder="請輸入密碼">
+            
+            <!-- 混淆驗證碼（非必填） -->
+            <input type="text" id="inviteCode" class="hidden" placeholder="內部識別碼 (選填)">
+
+            <button class="btn btn-primary" id="authBtn" onclick="handleAuth()">登入</button>
+            <span class="toggle-link" id="toggleText" onclick="toggleMode()">沒有帳號？點此註冊</span>
+        </div>
+
+        <!-- 已登入畫面：功能選單 -->
+        <div id="menuSection" class="hidden">
+            <h1 id="welcomeTitle">歡迎回來！</h1>
+            <p>請選擇您要進入的頁面</p>
+            <a href="display.html" class="btn btn-display" target="_blank">📺 開啟前台顯示螢幕</a>
+            <a href="admin.html" class="btn btn-admin" target="_blank">⚙️ 開啟後台控制面板</a>
+            <button class="btn btn-logout" onclick="logout()">登出系統</button>
+        </div>
     </div>
+
+    <script>
+        let isRegisterMode = false;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const loggedInName = localStorage.getItem('loggedInName');
+            if (loggedInName) {
+                showMenu(loggedInName);
+            }
+        });
+
+        function toggleMode() {
+            isRegisterMode = !isRegisterMode;
+            document.getElementById('errorMsg').innerText = '';
+            document.getElementById('displayName').value = '';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('inviteCode').value = '';
+
+            const displayNameInput = document.getElementById('displayName');
+            const inviteCodeInput = document.getElementById('inviteCode');
+
+            if (isRegisterMode) {
+                document.getElementById('formTitle').innerText = '註冊新帳號';
+                document.getElementById('formSubtitle').innerText = '設定您的專屬管理帳密';
+                document.getElementById('authBtn').innerText = '註冊';
+                document.getElementById('toggleText').innerText = '已有帳號？點此登入';
+                displayNameInput.classList.remove('hidden'); // 顯示名稱欄位
+                inviteCodeInput.classList.remove('hidden');  // 顯示驗證欄位
+            } else {
+                document.getElementById('formTitle').innerText = '系統登入';
+                document.getElementById('formSubtitle').innerText = '請輸入帳號密碼以使用叫號系統';
+                document.getElementById('authBtn').innerText = '登入';
+                document.getElementById('toggleText').innerText = '沒有帳號？點此註冊';
+                displayNameInput.classList.add('hidden');    // 隱藏名稱欄位
+                inviteCodeInput.classList.add('hidden');     // 隱藏驗證欄位
+            }
+        }
+
+        function handleAuth() {
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value.trim();
+            const name = document.getElementById('displayName').value.trim();
+            const errorDiv = document.getElementById('errorMsg');
+
+            if (!user || !pass || (isRegisterMode && !name)) {
+                errorDiv.innerText = '所有必要欄位皆不得為空！';
+                return;
+            }
+
+            let usersDB = JSON.parse(localStorage.getItem('usersDB')) || {};
+
+            if (isRegisterMode) {
+                if (usersDB[user]) {
+                    errorDiv.innerText = '此帳號已被註冊過了！';
+                    return;
+                }
+                // 儲存帳密與對應的名稱
+                usersDB[user] = { password: pass, name: name };
+                localStorage.setItem('usersDB', JSON.stringify(usersDB));
+                
+                alert('註冊成功！請直接登入');
+                toggleMode();
+            } else {
+                // 若完全沒有帳號，自動建立預設測試帳號
+                if (Object.keys(usersDB).length === 0) {
+                    usersDB['admin'] = { password: '1234', name: '管理員' };
+                    localStorage.setItem('usersDB', JSON.stringify(usersDB));
+                }
+
+                if (usersDB[user] && usersDB[user].password === pass) {
+                    const currentName = usersDB[user].name || user;
+                    localStorage.setItem('loggedInUser', user);
+                    localStorage.setItem('loggedInName', currentName);
+                    showMenu(currentName);
+                } else {
+                    errorDiv.innerText = '帳號或密碼錯誤！';
+                }
+            }
+        }
+
+        function showMenu(name) {
+            document.getElementById('welcomeTitleinnerText') = `${name}歡迎回來！請選擇您要進入的頁面`;
+            document.getElementById('welcomeTitle').innerText = `${name}，歡迎回來！`;
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('menuSection').classList.remove('hidden');
+        }
+
+        function logout() {
+            localStorage.removeItem('loggedInUser');
+            localStorage.removeItem('loggedInName');
+            document.getElementById('menuSection').classList.add('hidden');
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('displayName').value = '';
+            document.getElementById('errorMsg').innerText = '';
+        }
+    </script>
 </body>
 </html>
