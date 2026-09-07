@@ -247,25 +247,31 @@
         function unlockAudio() {
             audioUnlocked = true;
             document.getElementById('audioUnlockBanner').style.display = 'none';
-            // 播放一次空白聲音來解鎖
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
             }
         }
 
-        // 語音播放邏輯：將號碼每個字拆開加逗號
-        function speakNumber(numberStr, template) {
+        // 核心語音處理：只將「數字」拆開並加上逗號，文字與英文保持原樣
+        function formatNumberForSpeech(text) {
+            return text.replace(/\d+/g, function(match) {
+                return match.split('').join(', ');
+            });
+        }
+
+        // 語音播放邏輯
+        function speakNumber(numberStr, template, rate = 0.85) {
             if (!audioUnlocked) return;
             if ('speechSynthesis' in window) {
-                // 把號碼的每個字/數字用逗號隔開（例如 "123" 變成 "1, 2, 3"）
-                let spacedNumber = numberStr.split('').join(', ');
+                // 僅對數字部分進行逗號分隔處理
+                let formattedNumber = formatNumberForSpeech(String(numberStr));
                 
-                // 套用格式（預設為 "{{number}}，請取餐"）
-                let textToSpeak = template.replace('{{number}}', spacedNumber);
+                // 套用範本（預設為 "請 {{number}} 顧客取餐，謝謝"）
+                let textToSpeak = template.replace(/\{\{number\}\}/g, formattedNumber);
 
                 const utterance = new SpeechSynthesisUtterance(textToSpeak);
                 utterance.lang = 'zh-TW';
-                utterance.rate = 0.85; // 放慢語速，讓客人聽得更清楚
+                utterance.rate = Number(rate) || 0.85; // 套用指定的語速
                 window.speechSynthesis.speak(utterance);
             }
         }
@@ -273,7 +279,8 @@
         function updateDisplay() {
             const data = JSON.parse(localStorage.getItem('queueData')) || { 
                 ready: [], preparing: [], storeName: '', marquee: '', 
-                voiceEnabled: true, voiceTemplate: '{{number}}，請取餐' 
+                voiceEnabled: true, voiceTemplate: '請 {{number}} 顧客取餐，謝謝',
+                voiceRate: 0.85 
             };
             
             const storeHeader = document.getElementById('storeTitleHeader');
@@ -300,10 +307,12 @@
             const newlyAdded = currentReadyNumbers.filter(num => !lastReadyState.includes(num));
             
             if (newlyAdded.length > 0 && data.voiceEnabled !== false) {
-                let template = data.voiceTemplate || '{{number}}，請取餐';
+                let template = data.voiceTemplate || '請 {{number}} 顧客取餐，謝謝';
+                let rate = data.voiceRate !== undefined ? data.voiceRate : 0.85;
+                
                 // 依序播報新加入的號碼
                 newlyAdded.forEach(num => {
-                    speakNumber(num, template);
+                    speakNumber(num, template, rate);
                 });
             }
 
