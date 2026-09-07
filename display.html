@@ -141,7 +141,6 @@
             color: var(--ready-text);
         }
 
-        /* 新增卡片時的放大閃爍提醒動畫 */
         .new-alert {
             animation: popAlert 1.2s ease-in-out;
         }
@@ -192,9 +191,29 @@
             0% { transform: translate(0, 0); }
             100% { transform: translate(-100%, 0); }
         }
+
+        /* 解鎖語音提示區塊 */
+        .audio-unlock-banner {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #2C3E50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
+
+    <!-- 第一次進入必須點擊這裡以允許瀏覽器播放聲音 -->
+    <div id="audioUnlockBanner" class="audio-unlock-banner" onclick="unlockAudio()">
+        🔊 點擊這裡以啟用前台語音播報
+    </div>
 
     <div id="storeTitleHeader"></div>
 
@@ -223,9 +242,39 @@
 
     <script>
         let lastReadyState = [];
+        let audioUnlocked = false;
+
+        function unlockAudio() {
+            audioUnlocked = true;
+            document.getElementById('audioUnlockBanner').style.display = 'none';
+            // 播放一次空白聲音來解鎖
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+            }
+        }
+
+        // 語音播放邏輯：將號碼每個字拆開加逗號
+        function speakNumber(numberStr, template) {
+            if (!audioUnlocked) return;
+            if ('speechSynthesis' in window) {
+                // 把號碼的每個字/數字用逗號隔開（例如 "123" 變成 "1, 2, 3"）
+                let spacedNumber = numberStr.split('').join(', ');
+                
+                // 套用格式（預設為 "{{number}}，請取餐"）
+                let textToSpeak = template.replace('{{number}}', spacedNumber);
+
+                const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                utterance.lang = 'zh-TW';
+                utterance.rate = 0.85; // 放慢語速，讓客人聽得更清楚
+                window.speechSynthesis.speak(utterance);
+            }
+        }
 
         function updateDisplay() {
-            const data = JSON.parse(localStorage.getItem('queueData')) || { ready: [], preparing: [], storeName: '', marquee: '' };
+            const data = JSON.parse(localStorage.getItem('queueData')) || { 
+                ready: [], preparing: [], storeName: '', marquee: '', 
+                voiceEnabled: true, voiceTemplate: '{{number}}，請取餐' 
+            };
             
             const storeHeader = document.getElementById('storeTitleHeader');
             if (data.storeName && data.storeName.trim() !== '') {
@@ -244,17 +293,27 @@
                 marqueeFooter.style.display = 'none';
             }
 
-            // 檢查是否有「新的號碼」加入請取餐清單以播放動畫
-            const currentReadyNumbers = data.ready.map(i => i.number);
+            const currentReadyItems = data.ready;
+            const currentReadyNumbers = currentReadyItems.map(i => i.number);
+            
+            // 找出剛才新增的號碼來觸發語音與動畫
             const newlyAdded = currentReadyNumbers.filter(num => !lastReadyState.includes(num));
+            
+            if (newlyAdded.length > 0 && data.voiceEnabled !== false) {
+                let template = data.voiceTemplate || '{{number}}，請取餐';
+                // 依序播報新加入的號碼
+                newlyAdded.forEach(num => {
+                    speakNumber(num, template);
+                });
+            }
+
             lastReadyState = currentReadyNumbers;
 
             const readyContainer = document.getElementById('readyList');
             readyContainer.innerHTML = '';
-            data.ready.forEach(item => {
+            currentReadyItems.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'number-card ready-card';
-                // 如果是剛加入的號碼，加上動態特效類別
                 if (newlyAdded.includes(item.number)) {
                     card.classList.add('new-alert');
                 }
