@@ -31,7 +31,7 @@
         }
         .tag-btn:hover { background-color: #5a6268; }
 
-        input, button, textarea {
+        input, button, textarea, select {
             padding: 10px;
             font-size: 1rem;
             margin-right: 10px;
@@ -142,6 +142,14 @@
             border-radius: 6px;
         }
         .btn-cancel:hover { background-color: #5a6268; }
+        
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -150,28 +158,59 @@
 
     <div class="control-panel">
         <h3>螢幕與語音設定</h3>
-        <div style="margin-bottom: 10px;">
-            <label style="display:inline-block; width: 100px; font-weight:bold;">店名字幕：</label>
-            <input type="text" id="inputStoreName" placeholder="例如：OO手作早午餐" style="width: 320px;" oninput="updateSettings()">
+        
+        <div class="settings-grid">
+            <label style="font-weight:bold;">店名字幕：</label>
+            <input type="text" id="inputStoreName" placeholder="例如：OO手作早午餐" style="width: 100%; max-width: 320px; margin-bottom: 0;" oninput="updateSettings()">
         </div>
-        <div style="margin-bottom: 10px;">
-            <label style="display:inline-block; width: 100px; font-weight:bold;">跑馬燈公告：</label>
-            <input type="text" id="inputMarquee" placeholder="例如：今日特餐已售完！" style="width: 320px;" oninput="updateSettings()">
+
+        <div class="settings-grid">
+            <label style="font-weight:bold;">跑馬燈公告：</label>
+            <input type="text" id="inputMarquee" placeholder="例如：今日特餐已售完！" style="width: 100%; max-width: 320px; margin-bottom: 0;" oninput="updateSettings()">
         </div>
-        <div style="margin-bottom: 10px; display: flex; align-items: center;">
-            <label style="display:inline-block; width: 100px; font-weight:bold;">語音播報：</label>
-            <input type="checkbox" id="inputVoiceEnabled" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 10px;" onchange="updateSettings()"> 
-            <span>啟動前台語音叫號</span>
+
+        <div class="settings-grid">
+            <label style="font-weight:bold;">語音播報：</label>
+            <div>
+                <input type="checkbox" id="inputVoiceEnabled" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 10px;" onchange="updateSettings()"> 
+                <span>啟動前台語音叫號</span>
+            </div>
         </div>
-        <div style="margin-bottom: 10px;">
-            <label style="display:inline-block; width: 100px; font-weight:bold;">語音格式：</label>
-            <input type="text" id="inputVoiceTemplate" value="請{{number}}顧客取餐，謝謝" style="width: 320px;" oninput="updateSettings()">
-            <span style="font-size: 0.85rem; color: #666;">({{number}} 中的數字會自動加逗號唸出)</span>
+
+        <div class="settings-grid">
+            <label style="font-weight:bold;">語音格式：</label>
+            <div>
+                <input type="text" id="inputVoiceTemplate" value="請{{number}}顧客取餐，謝謝" style="width: 100%; max-width: 320px; margin-bottom: 2px;" oninput="updateSettings()">
+                <br><span style="font-size: 0.85rem; color: #666;">({{number}} 中的數字會自動加逗號唸出)</span>
+            </div>
         </div>
-        <div>
-            <label style="display:inline-block; width: 100px; font-weight:bold;">語音語速：</label>
-            <input type="number" id="inputVoiceRate" value="1.0" min="0.5" max="2.0" step="0.1" style="width: 100px;" oninput="updateSettings()">
-            <span style="font-size: 0.85rem; color: #666;">(範圍 0.5 ~ 2.0，預設 1.0)</span>
+
+        <div class="settings-grid">
+            <label style="font-weight:bold;">語音語速：</label>
+            <div>
+                <input type="number" id="inputVoiceRate" value="1.0" min="0.5" max="2.0" step="0.1" style="width: 100px; margin-bottom: 2px;" oninput="updateSettings()">
+                <span style="font-size: 0.85rem; color: #666;">(範圍 0.5 ~ 2.0，預設 1.0)</span>
+            </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+
+        <div class="settings-grid">
+            <label style="font-weight:bold;">取餐頁面排版：</label>
+            <select id="inputLayoutMode" style="width: 220px; margin-bottom: 0;" onchange="updateSettings()">
+                <option value="single">單欄顯示（原本模式）</option>
+                <option value="split">左右雙欄顯示（分流模式）</option>
+            </select>
+        </div>
+
+        <div class="settings-grid">
+            <label style="font-weight:bold;">左欄區塊標題：</label>
+            <input type="text" id="inputLeftColTitle" value="現場 / 自取" style="width: 100%; max-width: 220px; margin-bottom: 0;" oninput="updateSettings()">
+        </div>
+
+        <div class="settings-grid">
+            <label style="font-weight:bold;">右欄區塊標題：</label>
+            <input type="text" id="inputRightColTitle" value="電話 / 網路 / 外送" style="width: 100%; max-width: 220px; margin-bottom: 0;" oninput="updateSettings()">
         </div>
     </div>
 
@@ -179,15 +218,22 @@
         <h3>新增準備中號碼</h3>
         <div class="tag-group">
             <button type="button" class="tag-btn" onclick="insertTag('自取-')">自取</button>
-            <button type="button" class="tag-btn" onclick="insertTag('網路-')">網路</button>
+            <button type="button" class="tag-btn" onclick="insertTag('現場-')">現場</button>
             <button type="button" class="tag-btn" onclick="insertTag('電話-')">電話</button>
+            <button type="button" class="tag-btn" onclick="insertTag('網路-')">網路</button>
             <button type="button" class="tag-btn" onclick="insertTag('Foodpanda-')">Foodpanda</button>
             <button type="button" class="tag-btn" onclick="insertTag('Uber eats-')">Uber eats</button>
         </div>
 
-        <input type="text" id="inputNumber" placeholder="請輸入或點選上方選項..." style="width: 220px;">
-        <input type="number" id="inputTime" placeholder="預估製作分" value="5" style="width: 100px;">
-        <button onclick="addPreparing()">新增號碼</button>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+            <input type="text" id="inputNumber" placeholder="請輸入或點選上方選項..." style="width: 200px; margin-bottom: 0;">
+            <input type="number" id="inputTime" placeholder="預估製作分" value="5" style="width: 90px; margin-bottom: 0;">
+            <select id="inputColumn" style="width: 130px; margin-bottom: 0;">
+                <option value="left">分至：左欄</option>
+                <option value="right">分至：右欄</option>
+            </select>
+            <button onclick="addPreparing()" style="margin-bottom: 0;">新增號碼</button>
+        </div>
     </div>
 
     <div class="section-box">
@@ -196,7 +242,7 @@
     </div>
 
     <div class="section-box">
-        <h3>請取餐清單 (自動倒數消失)</h3>
+        <h3>請取餐清單 </h3>
         <ul id="adminReadyList"></ul>
     </div>
 
@@ -233,12 +279,18 @@
                     marquee: '', 
                     voiceEnabled: true, 
                     voiceTemplate: '請{{number}}顧客取餐，謝謝',
-                    voiceRate: 1.0
+                    voiceRate: 1.0,
+                    layoutMode: 'single',
+                    leftColTitle: '現場 / 自取',
+                    rightColTitle: '電話 / 網路 / 外送'
                 };
             }
             if (data.voiceEnabled === undefined) data.voiceEnabled = true;
             if (!data.voiceTemplate) data.voiceTemplate = '請{{number}}顧客取餐，謝謝';
             if (data.voiceRate === undefined) data.voiceRate = 1.0;
+            if (!data.layoutMode) data.layoutMode = 'single';
+            if (!data.leftColTitle) data.leftColTitle = '現場 / 自取';
+            if (!data.rightColTitle) data.rightColTitle = '電話 / 網路 / 外送';
             return data;
         }
 
@@ -254,14 +306,20 @@
             data.voiceEnabled = document.getElementById('inputVoiceEnabled').checked;
             data.voiceTemplate = document.getElementById('inputVoiceTemplate').value;
             data.voiceRate = parseFloat(document.getElementById('inputVoiceRate').value) || 1.0;
+            data.layoutMode = document.getElementById('inputLayoutMode').value;
+            data.leftColTitle = document.getElementById('inputLeftColTitle').value;
+            data.rightColTitle = document.getElementById('inputRightColTitle').value;
             localStorage.setItem('queueData', JSON.stringify(data));
         }
 
         function addPreparing() {
             const numInput = document.getElementById('inputNumber');
             const timeInput = document.getElementById('inputTime');
+            const colSelect = document.getElementById('inputColumn');
+            
             const number = numInput.value.trim();
             const time = timeInput.value.trim();
+            const column = colSelect.value;
 
             if (!number) {
                 alert('請輸入號碼或名稱！');
@@ -269,7 +327,7 @@
             }
 
             const data = getData();
-            data.preparing.push({ number, time });
+            data.preparing.push({ number, time, column });
             saveData(data);
 
             numInput.value = '';
@@ -299,6 +357,7 @@
             let defaultSeconds = 60;
             data.ready.push({
                 number: item.number,
+                column: item.column || 'left', // 帶入原本指定的欄位
                 expireTime: Date.now() + defaultSeconds * 1000,
                 totalSeconds: defaultSeconds
             });
@@ -311,6 +370,12 @@
             const secs = Number(newMin) * 60;
             data.ready[index].expireTime = Date.now() + secs * 1000;
             data.ready[index].totalSeconds = secs;
+            saveData(data);
+        }
+
+        function updateReadyColumn(index, newCol) {
+            const data = getData();
+            data.ready[index].column = newCol;
             saveData(data);
         }
 
@@ -354,13 +419,23 @@
             if(document.activeElement !== document.getElementById('inputVoiceRate')) {
                 document.getElementById('inputVoiceRate').value = data.voiceRate !== undefined ? data.voiceRate : 1.0;
             }
+            if(document.activeElement !== document.getElementById('inputLayoutMode')) {
+                document.getElementById('inputLayoutMode').value = data.layoutMode || 'single';
+            }
+            if(document.activeElement !== document.getElementById('inputLeftColTitle')) {
+                document.getElementById('inputLeftColTitle').value = data.leftColTitle || '現場 / 自取';
+            }
+            if(document.activeElement !== document.getElementById('inputRightColTitle')) {
+                document.getElementById('inputRightColTitle').value = data.rightColTitle || '電話 / 網路 / 外送';
+            }
 
             const prepUl = document.getElementById('adminPrepList');
             prepUl.innerHTML = '';
             data.preparing.forEach((item, index) => {
+                const colLabel = item.column === 'right' ? `[${data.rightColTitle}]` : `[${data.leftColTitle}]`;
                 prepUl.innerHTML += `
                     <li>
-                        <span><b>${item.number}</b> (耗時: ${item.time}分)</span>
+                        <span><b>${item.number}</b> <small style="color:#666;">${colLabel}</small> (耗時: ${item.time}分)</span>
                         <div>
                             <button class="btn-move" onclick="openConfirmModal(${index})">移至請取餐</button>
                             <button class="btn-delete" onclick="deletePrep(${index})">刪除</button>
@@ -378,6 +453,7 @@
                 const mins = Math.floor(remainingSecs / 60);
                 const secs = remainingSecs % 60;
                 const currentMinSetting = Math.round(item.totalSeconds / 60);
+                const currentColumn = item.column || 'left';
 
                 readyUl.innerHTML += `
                     <li>
@@ -385,10 +461,14 @@
                             <b>${item.number}</b>
                             <span class="countdown-info">剩餘: ${mins}分${secs < 10 ? '0' : ''}${secs}秒</span>
                         </div>
-                        <div>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <select style="padding: 5px; margin-bottom: 0;" onchange="updateReadyColumn(${index}, this.value)">
+                                <option value="left" ${currentColumn === 'left' ? 'selected' : ''}>${data.leftColTitle}</option>
+                                <option value="right" ${currentColumn === 'right' ? 'selected' : ''}>${data.rightColTitle}</option>
+                            </select>
                             <button class="btn-add30" onclick="add30Seconds(${index})">+30秒</button>
-                            設分: <input type="number" value="${currentMinSetting}" min="1" style="width: 50px; padding: 5px;" onchange="updateReadyTime(${index}, this.value)"> 
-                            <button class="btn-delete" onclick="deleteReady(${index})">手動刪除</button>
+                            <span>設分:</span> <input type="number" value="${currentMinSetting}" min="1" style="width: 50px; padding: 5px; margin-bottom: 0;" onchange="updateReadyTime(${index}, this.value)"> 
+                            <button class="btn-delete" onclick="deleteReady(${index}); event.stopPropagation();">刪除</button>
                         </div>
                     </li>
                 `;
