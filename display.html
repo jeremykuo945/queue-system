@@ -37,6 +37,7 @@
             letter-spacing: 3px;
             display: none;
             padding: 2px 0;
+            flex-shrink: 0;
         }
 
         .main-content {
@@ -120,6 +121,35 @@
             padding: 5px;
         }
 
+        /* 支援請取餐內部雙欄分割的容器 */
+        .split-ready-container {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .sub-ready-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #FAFAFA;
+            border-radius: 14px;
+            padding: 10px;
+            border: 1px solid #EFECE6;
+            min-height: 0;
+        }
+
+        .sub-ready-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #2E7D32;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
         .number-card {
             padding: 12px 22px;
             border-radius: 14px;
@@ -133,6 +163,7 @@
             border-style: solid;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
             letter-spacing: 1px;
+            word-break: break-all;
         }
 
         .ready-card {
@@ -192,7 +223,6 @@
             100% { transform: translate(-100%, 0); }
         }
 
-        /* 解鎖語音提示區塊 */
         .audio-unlock-banner {
             position: fixed;
             bottom: 20px;
@@ -218,14 +248,18 @@
     <div id="storeTitleHeader"></div>
 
     <div class="main-content">
+        <!-- 左欄：請取餐（支援內部單欄或分割雙欄） -->
         <div class="column ready">
             <div class="column-header">
                 <div class="main-title">請取餐</div>
                 <div class="sub-title">Pick up</div>
             </div>
-            <div id="readyList" class="number-list"></div>
+            <div id="readyContentContainer" style="width: 100%; flex: 1; display: flex; min-height: 0;">
+                <!-- 這裡會動態載入一般列表或分割列表 -->
+            </div>
         </div>
 
+        <!-- 右欄：準備中（維持不變） -->
         <div class="column preparing">
             <div class="column-header">
                 <div class="main-title">準備中</div>
@@ -252,26 +286,21 @@
             }
         }
 
-        // 核心語音處理：只將「數字」拆開並加上逗號，文字與英文保持原樣
         function formatNumberForSpeech(text) {
             return text.replace(/\d+/g, function(match) {
                 return match.split('').join(', ');
             });
         }
 
-        // 語音播放邏輯
         function speakNumber(numberStr, template, rate = 0.85) {
             if (!audioUnlocked) return;
             if ('speechSynthesis' in window) {
-                // 僅對數字部分進行逗號分隔處理
                 let formattedNumber = formatNumberForSpeech(String(numberStr));
-                
-                // 套用範本（預設為 "請 {{number}} 顧客取餐，謝謝"）
                 let textToSpeak = template.replace(/\{\{number\}\}/g, formattedNumber);
 
                 const utterance = new SpeechSynthesisUtterance(textToSpeak);
                 utterance.lang = 'zh-TW';
-                utterance.rate = Number(rate) || 0.85; // 套用指定的語速
+                utterance.rate = Number(rate) || 0.85;
                 window.speechSynthesis.speak(utterance);
             }
         }
@@ -280,9 +309,11 @@
             const data = JSON.parse(localStorage.getItem('queueData')) || { 
                 ready: [], preparing: [], storeName: '', marquee: '', 
                 voiceEnabled: true, voiceTemplate: '請 {{number}} 顧客取餐，謝謝',
-                voiceRate: 0.85 
+                voiceRate: 0.85, layoutMode: 'single',
+                leftColTitle: '現場 / 自取', rightColTitle: '電話 / 網路 / 外送'
             };
             
+            // 店名控制
             const storeHeader = document.getElementById('storeTitleHeader');
             if (data.storeName && data.storeName.trim() !== '') {
                 storeHeader.innerText = data.storeName;
@@ -291,6 +322,7 @@
                 storeHeader.style.display = 'none';
             }
 
+            // 跑馬燈控制
             const marqueeFooter = document.getElementById('marqueeFooter');
             const marqueeContent = document.getElementById('marqueeContent');
             if (data.marquee && data.marquee.trim() !== '') {
@@ -300,45 +332,88 @@
                 marqueeFooter.style.display = 'none';
             }
 
-            const currentReadyItems = data.ready;
+            // 語音叫號偵測
+            const currentReadyItems = data.ready || [];
             const currentReadyNumbers = currentReadyItems.map(i => i.number);
-            
-            // 找出剛才新增的號碼來觸發語音與動畫
             const newlyAdded = currentReadyNumbers.filter(num => !lastReadyState.includes(num));
             
             if (newlyAdded.length > 0 && data.voiceEnabled !== false) {
                 let template = data.voiceTemplate || '請 {{number}} 顧客取餐，謝謝';
                 let rate = data.voiceRate !== undefined ? data.voiceRate : 0.85;
-                
-                // 依序播報新加入的號碼
                 newlyAdded.forEach(num => {
                     speakNumber(num, template, rate);
                 });
             }
-
             lastReadyState = currentReadyNumbers;
 
-            const readyContainer = document.getElementById('readyList');
-            readyContainer.innerHTML = '';
-            currentReadyItems.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'number-card ready-card';
-                if (newlyAdded.includes(item.number)) {
-                    card.classList.add('new-alert');
-                }
-                card.innerHTML = `${item.number}<span class="ready-subtext">請立刻取餐</span>`;
-                readyContainer.appendChild(card);
-            });
+            // 渲染左側「請取餐」區域（支援分割或單一列表）
+            const readyContentContainer = document.getElementById('readyContentContainer');
+            readyContentContainer.innerHTML = '';
 
+            const layoutMode = data.layoutMode || 'single';
+
+            if (layoutMode === 'split') {
+                // 如果後台開啟分割，左側「請取餐」內部再分為兩個子欄位
+                const leftTitle = data.leftColTitle || '現場 / 自取';
+                const rightTitle = data.rightColTitle || '電話 / 網路 / 外送';
+
+                readyContentContainer.innerHTML = `
+                    <div class="split-ready-container">
+                        <div class="sub-ready-column">
+                            <div class="sub-ready-title">${leftTitle}</div>
+                            <div id="subLeftList" class="number-list"></div>
+                        </div>
+                        <div class="sub-ready-column">
+                            <div class="sub-ready-title">${rightTitle}</div>
+                            <div id="subRightList" class="number-list"></div>
+                        </div>
+                    </div>
+                `;
+
+                const subLeftList = document.getElementById('subLeftList');
+                const subRightList = document.getElementById('subRightList');
+
+                currentReadyItems.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'number-card ready-card';
+                    if (newlyAdded.includes(item.number)) {
+                        card.classList.add('new-alert');
+                    }
+                    card.innerHTML = `${item.number}<span class="ready-subtext">請立刻取餐</span>`;
+                    
+                    if (item.column === 'right') {
+                        subRightList.appendChild(card);
+                    } else {
+                        subLeftList.appendChild(card);
+                    }
+                });
+            } else {
+                // 正常的單一請取餐列表
+                readyContentContainer.innerHTML = `<div id="readyList" class="number-list"></div>`;
+                const readyContainer = document.getElementById('readyList');
+                
+                currentReadyItems.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'number-card ready-card';
+                    if (newlyAdded.includes(item.number)) {
+                        card.classList.add('new-alert');
+                    }
+                    card.innerHTML = `${item.number}<span class="ready-subtext">請立刻取餐</span>`;
+                    readyContainer.appendChild(card);
+                });
+            }
+
+            // 右側「準備中」計算與渲染
             let totalTimeSum = 0;
-            data.preparing.forEach(item => {
+            (data.preparing || []).forEach(item => {
                 totalTimeSum += Number(item.time) || 0;
             });
-            document.getElementById('totalMinutes').innerText = totalTimeSum;
+            const totalMinutesEl = document.getElementById('totalMinutes');
+            if (totalMinutesEl) totalMinutesEl.innerText = totalTimeSum;
 
             const prepContainer = document.getElementById('preparingList');
             prepContainer.innerHTML = '';
-            data.preparing.forEach(item => {
+            (data.preparing || []).forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'number-card prep-card';
                 card.innerHTML = `${item.number}`;
