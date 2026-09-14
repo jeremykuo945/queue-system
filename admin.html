@@ -161,7 +161,31 @@
         
         <div class="settings-grid">
             <label style="font-weight:bold;">店名字幕：</label>
-            <input type="text" id="inputStoreName" placeholder="例如：OO手作早午餐" style="width: 100%; max-width: 320px; margin-bottom: 0;" oninput="updateSettings()">
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                <input type="text" id="inputStoreName" placeholder="例如：OO手作早午餐" style="width: 100%; max-width: 220px; margin-bottom: 0;" oninput="updateSettings()">
+                <select id="inputStoreAlign" style="width: 110px; margin-bottom: 0;" onchange="updateSettings()">
+                    <option value="left">靠左</option>
+                    <option value="center">置中</option>
+                    <option value="right">靠右</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="settings-grid">
+            <label style="font-weight:bold;">即時時間顯示：</label>
+            <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
+                <div>
+                    <input type="checkbox" id="inputClockEnabled" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 5px;" onchange="updateSettings()"> 
+                    <span>顯示時間</span>
+                </div>
+                <div id="clockPositionGroup" style="display: flex; align-items: center; gap: 5px;">
+                    <span style="font-size: 0.9rem; color: #666;">位置：</span>
+                    <select id="inputClockPosition" style="width: 120px; margin-bottom: 0;" onchange="updateSettings()">
+                        <option value="topLeft">左上角</option>
+                        <option value="topRight">右上角</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
         <div class="settings-grid">
@@ -276,6 +300,9 @@
                     ready: [], 
                     preparing: [], 
                     storeName: '', 
+                    storeAlign: 'center',
+                    clockEnabled: false,
+                    clockPosition: 'topRight',
                     marquee: '', 
                     voiceEnabled: true, 
                     voiceTemplate: '請{{number}}顧客取餐，謝謝',
@@ -285,6 +312,9 @@
                     rightColTitle: '電話 / 網路 / 外送'
                 };
             }
+            if (!data.storeAlign) data.storeAlign = 'center';
+            if (data.clockEnabled === undefined) data.clockEnabled = false;
+            if (!data.clockPosition) data.clockPosition = 'topRight';
             if (data.voiceEnabled === undefined) data.voiceEnabled = true;
             if (!data.voiceTemplate) data.voiceTemplate = '請{{number}}顧客取餐，謝謝';
             if (data.voiceRate === undefined) data.voiceRate = 1.0;
@@ -310,6 +340,9 @@
         function updateSettings() {
             const data = getData();
             data.storeName = document.getElementById('inputStoreName').value;
+            data.storeAlign = document.getElementById('inputStoreAlign').value;
+            data.clockEnabled = document.getElementById('inputClockEnabled').checked;
+            data.clockPosition = document.getElementById('inputClockPosition').value;
             data.marquee = document.getElementById('inputMarquee').value;
             data.voiceEnabled = document.getElementById('inputVoiceEnabled').checked;
             data.voiceTemplate = document.getElementById('inputVoiceTemplate').value;
@@ -319,6 +352,10 @@
             data.rightColTitle = document.getElementById('inputRightColTitle').value;
             localStorage.setItem('queueData', JSON.stringify(data));
             toggleLayoutSettings();
+            
+            // 控制時間位置下拉選單的顯示與隱藏
+            const clockEnabled = document.getElementById('inputClockEnabled').checked;
+            document.getElementById('clockPositionGroup').style.display = clockEnabled ? 'flex' : 'none';
         }
 
         function addPreparing() {
@@ -418,6 +455,13 @@
             if(document.activeElement !== document.getElementById('inputStoreName')) {
                 document.getElementById('inputStoreName').value = data.storeName || '';
             }
+            if(document.activeElement !== document.getElementById('inputStoreAlign')) {
+                document.getElementById('inputStoreAlign').value = data.storeAlign || 'center';
+            }
+            document.getElementById('inputClockEnabled').checked = data.clockEnabled;
+            if(document.activeElement !== document.getElementById('inputClockPosition')) {
+                document.getElementById('inputClockPosition').value = data.clockPosition || 'topRight';
+            }
             if(document.activeElement !== document.getElementById('inputMarquee')) {
                 document.getElementById('inputMarquee').value = data.marquee || '';
             }
@@ -439,6 +483,7 @@
             }
 
             toggleLayoutSettings();
+            document.getElementById('clockPositionGroup').style.display = data.clockEnabled ? 'flex' : 'none';
 
             const prepUl = document.getElementById('adminPrepList');
             prepUl.innerHTML = '';
