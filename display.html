@@ -7,7 +7,7 @@
         :root {
             --bg-color: #FBF9F5;
             --card-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
-            --ready-bg: #E8F5E9;        
+            --ready-bg: #E8F5E9;       
             --ready-border: #66BB6A;    
             --ready-text: #1B5E20;      
             --prep-bg: #FFF8E1;         
@@ -29,15 +29,31 @@
             overflow: hidden;
         }
 
+        #topBarContainer {
+            display: none;
+            width: 100%;
+            position: relative;
+            align-items: center;
+            padding: 2px 0;
+            flex-shrink: 0;
+            min-height: 50px;
+        }
+
         #storeTitleHeader {
-            text-align: center;
             font-size: 2.2rem;
             font-weight: 800;
             color: #4A3B32;
             letter-spacing: 3px;
+            width: 100%;
+        }
+
+        .clock-display {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #4A3B32;
+            letter-spacing: 1px;
+            white-space: nowrap;
             display: none;
-            padding: 2px 0;
-            flex-shrink: 0;
         }
 
         .main-content {
@@ -121,7 +137,6 @@
             padding: 5px;
         }
 
-        /* 支援請取餐內部雙欄分割的容器 */
         .split-ready-container {
             display: flex;
             gap: 15px;
@@ -240,26 +255,25 @@
 </head>
 <body>
 
-    <!-- 第一次進入必須點擊這裡以允許瀏覽器播放聲音 -->
     <div id="audioUnlockBanner" class="audio-unlock-banner" onclick="unlockAudio()">
         🔊 點擊這裡以啟用前台語音播報
     </div>
 
-    <div id="storeTitleHeader"></div>
+    <!-- 頂部列：包含店名與即時時鐘 -->
+    <div id="topBarContainer">
+        <div id="storeTitleHeader"></div>
+        <div id="clockHeader" class="clock-display"></div>
+    </div>
 
     <div class="main-content">
-        <!-- 左欄：請取餐（支援內部單欄或分割雙欄） -->
         <div class="column ready">
             <div class="column-header">
                 <div class="main-title">請取餐</div>
                 <div class="sub-title">Pick up</div>
             </div>
-            <div id="readyContentContainer" style="width: 100%; flex: 1; display: flex; min-height: 0;">
-                <!-- 這裡會動態載入一般列表或分割列表 -->
-            </div>
+            <div id="readyContentContainer" style="width: 100%; flex: 1; display: flex; min-height: 0;"></div>
         </div>
 
-        <!-- 右欄：準備中（維持不變） -->
         <div class="column preparing">
             <div class="column-header">
                 <div class="main-title">準備中</div>
@@ -305,21 +319,90 @@
             }
         }
 
+        // 更新即時時鐘畫面
+        function updateClockDisplay(data) {
+            const clockEl = document.getElementById('clockHeader');
+            if (data.clockEnabled) {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                clockEl.innerText = `${hours}:${minutes}:${seconds}`;
+                clockEl.style.display = 'block';
+            } else {
+                clockEl.style.display = 'none';
+            }
+        }
+
         function updateDisplay() {
             const data = JSON.parse(localStorage.getItem('queueData')) || { 
-                ready: [], preparing: [], storeName: '', marquee: '', 
+                ready: [], preparing: [], storeName: '', storeAlign: 'center',
+                clockEnabled: false, clockPosition: 'topRight', marquee: '', 
                 voiceEnabled: true, voiceTemplate: '請 {{number}} 顧客取餐，謝謝',
                 voiceRate: 0.85, layoutMode: 'single',
                 leftColTitle: '現場 / 自取', rightColTitle: '電話 / 網路 / 外送'
             };
             
-            // 店名控制
+            // 頂部列（店名與時鐘控制）
+            const topBar = document.getElementById('topBarContainer');
             const storeHeader = document.getElementById('storeTitleHeader');
-            if (data.storeName && data.storeName.trim() !== '') {
-                storeHeader.innerText = data.storeName;
-                storeHeader.style.display = 'block';
+            const clockHeader = document.getElementById('clockHeader');
+
+            const hasStore = data.storeName && data.storeName.trim() !== '';
+            const hasClock = data.clockEnabled;
+
+            if (hasStore || hasClock) {
+                topBar.style.display = 'flex';
+                
+                // 店名內容與對齊
+                if (hasStore) {
+                    storeHeader.innerText = data.storeName;
+                    storeHeader.style.display = 'block';
+                    
+                    const align = data.storeAlign || 'center';
+                    if (align === 'left') {
+                        storeHeader.style.textAlign = 'left';
+                    } else if (align === 'right') {
+                        storeHeader.style.textAlign = 'right';
+                    } else {
+                        storeHeader.style.textAlign = 'center';
+                    }
+                } else {
+                    storeHeader.style.display = 'none';
+                }
+
+                updateClockDisplay(data);
+
+                // 時鐘位置與店名在同一行的排版控制
+                topBar.innerHTML = ''; // 重新組合順序
+                const clockPos = data.clockPosition || 'topRight';
+
+                if (hasClock && clockPos === 'topLeft') {
+                    topBar.appendChild(clockHeader);
+                    if (hasStore) {
+                        storeHeader.style.flex = '1';
+                        storeHeader.style.textAlign = alignHeaderForFlex(data.storeAlign);
+                        topBar.appendChild(storeHeader);
+                    }
+                    clockHeader.style.marginRight = '20px';
+                } else if (hasClock && clockPos === 'topRight') {
+                    if (hasStore) {
+                        storeHeader.style.flex = '1';
+                        storeHeader.style.textAlign = alignHeaderForFlex(data.storeAlign);
+                        topBar.appendChild(storeHeader);
+                    }
+                    topBar.appendChild(clockHeader);
+                    clockHeader.style.marginLeft = '20px';
+                } else {
+                    // 只有店名
+                    if (hasStore) {
+                        storeHeader.style.flex = '1';
+                        storeHeader.style.textAlign = data.storeAlign || 'center';
+                        topBar.appendChild(storeHeader);
+                    }
+                }
             } else {
-                storeHeader.style.display = 'none';
+                topBar.style.display = 'none';
             }
 
             // 跑馬燈控制
@@ -346,14 +429,13 @@
             }
             lastReadyState = currentReadyNumbers;
 
-            // 渲染左側「請取餐」區域（支援分割或單一列表）
+            // 渲染左側「請取餐」區域
             const readyContentContainer = document.getElementById('readyContentContainer');
             readyContentContainer.innerHTML = '';
 
             const layoutMode = data.layoutMode || 'single';
 
             if (layoutMode === 'split') {
-                // 如果後台開啟分割，左側「請取餐」內部再分為兩個子欄位
                 const leftTitle = data.leftColTitle || '現場 / 自取';
                 const rightTitle = data.rightColTitle || '電話 / 網路 / 外送';
 
@@ -388,7 +470,6 @@
                     }
                 });
             } else {
-                // 正常的單一請取餐列表
                 readyContentContainer.innerHTML = `<div id="readyList" class="number-list"></div>`;
                 const readyContainer = document.getElementById('readyList');
                 
@@ -421,9 +502,23 @@
             });
         }
 
+        function alignHeaderForFlex(align) {
+            if (align === 'left') return 'left';
+            if (align === 'right') return 'right';
+            return 'center';
+        }
+
         updateDisplay();
         window.addEventListener('storage', updateDisplay);
-        setInterval(updateDisplay, 1000);
+        
+        // 每秒更新時鐘與畫面
+        setInterval(() => {
+            const data = JSON.parse(localStorage.getItem('queueData'));
+            if (data && data.clockEnabled) {
+                updateClockDisplay(data);
+            }
+            updateDisplay();
+        }, 1000);
     </script>
 </body>
 </html>
